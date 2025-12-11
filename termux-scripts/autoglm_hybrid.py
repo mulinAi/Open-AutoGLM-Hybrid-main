@@ -423,17 +423,30 @@ class AutoGLMAgent:
             package = APP_PACKAGES.get(app_name, app_name)
             print(f"  启动应用: {app_name} ({package})")
             success = self.controller.launch_app(package)
-            if not success:
-                print("  ⚠️ 启动失败，回到主页让AI找应用图标...")
+            if success:
+                time.sleep(2)  # 等待应用启动
+                return True
+            else:
+                print("  ⚠️ 直接启动失败，尝试通过搜索打开...")
+                # 策略：下拉通知栏搜索 或 回主页下拉搜索
+                # 大多数手机主页下拉可以搜索应用
                 self.controller.home()
+                time.sleep(0.5)
+                # 从屏幕中间向下滑动，触发搜索
+                screen_w = self.controller.screen_width or 1080
+                screen_h = self.controller.screen_height or 2400
+                self.controller.swipe(screen_w // 2, screen_h // 3, screen_w // 2, screen_h * 2 // 3, 300)
+                time.sleep(1)
+                # 输入应用名搜索
+                self.controller.input_text(app_name)
                 time.sleep(1.5)
-                # 添加提示到历史，让AI知道需要手动找图标
+                # 添加提示
                 self.history.append({
                     'step': len(self.history),
-                    'action': 'launch_failed',
-                    'thought': f'启动{app_name}失败，已回到主页，请在桌面找到{app_name}图标并点击'
+                    'action': 'search_app',
+                    'thought': f'已搜索"{app_name}"，请点击搜索结果中的应用图标'
                 })
-            return True  # 返回 True 继续执行，让 AI 在桌面找图标
+                return True
         elif action == 'tap':
             x, y = int(params.get('x', 0)), int(params.get('y', 0))
             return self.controller.tap(x, y)
