@@ -118,21 +118,30 @@ class DoubaoVisionModel:
         self.api_url = DOUBAO_API_URL
         self.model = DOUBAO_MODEL
     
-    def analyze_screen(self, image_base64, task):
-        prompt = f"""你是一个手机自动化助手。用户的任务是：{task}
+    def analyze_screen(self, image_base64, task, width=1080, height=2400):
+        prompt = f"""你是一个手机自动化助手，负责控制 Android 手机完成用户任务。
 
-请分析当前屏幕截图，决定下一步操作。
+【用户任务】{task}
 
-返回 JSON 格式：
-- action: tap, swipe, input, back, home, done, failed
-- params: 操作参数
-- thought: 思考过程
+【屏幕信息】宽 {width} 像素，高 {height} 像素。坐标系：左上角 (0,0)，右下角 ({width},{height})
+
+【重要规则】
+1. 仔细观察屏幕上所有元素的位置
+2. 点击坐标必须精确到目标元素的中心位置
+3. 点击 APP 图标时，坐标要在图标正中央
+4. 如果任务已完成（如已显示搜索结果），返回 done
+
+【返回格式】只返回 JSON：
+{{"action": "操作类型", "params": {{参数}}, "thought": "思考过程"}}
+
+操作类型：tap, swipe, input, back, home, done, failed
 
 示例：
-{{"action": "tap", "params": {{"x": 540, "y": 1200}}, "thought": "点击搜索框"}}
-{{"action": "done", "params": {{}}, "thought": "任务已完成"}}
+{{"action": "tap", "params": {{"x": 270, "y": 500}}, "thought": "点击左上角的淘宝图标"}}
+{{"action": "input", "params": {{"text": "蓝牙耳机"}}, "thought": "输入搜索词"}}
+{{"action": "done", "params": {{}}, "thought": "搜索结果已显示，任务完成"}}
 
-只返回 JSON。"""
+现在分析屏幕并返回下一步操作（只返回JSON）："""
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",

@@ -161,32 +161,49 @@ class DoubaoVisionModel:
                 'thought': '...'  # 思考过程
             }
         """
+        # 获取图片尺寸
+        width, height = image.size
+        
         # 将图片转为 base64
         buffered = BytesIO()
         image.save(buffered, format="PNG")
         image_base64 = base64.b64encode(buffered.getvalue()).decode()
         
         # 构建提示词
-        prompt = f"""你是一个手机自动化助手。用户的任务是：{task}
+        prompt = f"""你是一个手机自动化助手，负责控制 Android 手机完成用户任务。
 
-请分析当前屏幕截图，决定下一步操作。
+【用户任务】{task}
 
-你必须返回一个 JSON 格式的响应，包含以下字段：
-- action: 操作类型，可选值：tap, swipe, input, back, home, done, failed
-- params: 操作参数
-  - tap: {{"x": 数字, "y": 数字}}
-  - swipe: {{"x1": 数字, "y1": 数字, "x2": 数字, "y2": 数字}}
-  - input: {{"text": "要输入的文字"}}
-  - back/home/done/failed: 不需要参数
-- thought: 你的思考过程
+【屏幕信息】
+- 屏幕分辨率：宽 {width} 像素，高 {height} 像素
+- 坐标系：左上角为 (0,0)，右下角为 ({width},{height})
 
-示例响应：
-{{"action": "tap", "params": {{"x": 540, "y": 1200}}, "thought": "点击搜索框"}}
-{{"action": "input", "params": {{"text": "蓝牙耳机"}}, "thought": "输入搜索关键词"}}
-{{"action": "swipe", "params": {{"x1": 540, "y1": 1500, "x2": 540, "y2": 500}}, "thought": "向上滑动查看更多"}}
-{{"action": "done", "params": {{}}, "thought": "任务已完成"}}
+【重要规则】
+1. 仔细观察屏幕上的所有元素（图标、按钮、文字、输入框）
+2. 点击坐标必须精确到目标元素的中心位置
+3. 如果要点击某个 APP 图标，坐标应该在图标的正中央
+4. 如果要点击按钮或文字，坐标应该在该元素的中心
+5. 如果当前屏幕已经显示任务目标（如已打开淘宝并显示搜索结果），返回 done
 
-只返回 JSON，不要其他内容。"""
+【操作类型】
+- tap: 点击，需要精确的 x,y 坐标
+- swipe: 滑动，从 (x1,y1) 滑到 (x2,y2)
+- input: 输入文字（需要先点击输入框激活）
+- back: 返回上一页
+- home: 回到桌面
+- done: 任务完成
+- failed: 无法完成
+
+【返回格式】只返回 JSON，格式如下：
+{{"action": "操作类型", "params": {{参数}}, "thought": "思考过程"}}
+
+【示例】
+- 点击屏幕中央的淘宝图标：{{"action": "tap", "params": {{"x": {width//2}, "y": {height//2}}}, "thought": "点击淘宝图标"}}
+- 在搜索框输入：{{"action": "input", "params": {{"text": "蓝牙耳机"}}, "thought": "输入搜索词"}}
+- 向上滑动：{{"action": "swipe", "params": {{"x1": {width//2}, "y1": {int(height*0.7)}, "x2": {width//2}, "y2": {int(height*0.3)}}}, "thought": "向上滑动"}}
+- 任务完成：{{"action": "done", "params": {{}}, "thought": "已完成搜索，显示结果"}}
+
+现在请分析屏幕并返回下一步操作（只返回JSON）："""
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
