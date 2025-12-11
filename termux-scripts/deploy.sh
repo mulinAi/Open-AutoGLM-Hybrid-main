@@ -86,11 +86,16 @@ install_dependencies() {
 install_python_packages() {
     print_info "安装 Python 依赖包..."
     
-    # 升级 pip
-    pip install --upgrade pip
+    # Termux 需要设置这个环境变量才能用 pip
+    export PIP_BREAK_SYSTEM_PACKAGES=1
     
-    # 安装依赖
-    pip install pillow openai requests
+    # 添加到 bashrc 以便后续使用
+    if ! grep -q "PIP_BREAK_SYSTEM_PACKAGES" ~/.bashrc; then
+        echo 'export PIP_BREAK_SYSTEM_PACKAGES=1' >> ~/.bashrc
+    fi
+    
+    # 安装依赖 (使用旧版 openai 避免 Rust 编译问题)
+    pip install pillow requests openai==0.28.1
     
     print_success "Python 依赖安装完成"
 }
@@ -123,13 +128,16 @@ install_autoglm() {
     
     cd ~/Open-AutoGLM
     
+    # 确保环境变量设置
+    export PIP_BREAK_SYSTEM_PACKAGES=1
+    
     # 安装项目依赖
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
+        pip install -r requirements.txt || print_warning "部分依赖安装失败，继续..."
     fi
     
     # 安装 phone_agent
-    pip install -e .
+    pip install -e . || print_warning "phone_agent 安装失败，继续..."
     
     print_success "Open-AutoGLM 安装完成"
 }
