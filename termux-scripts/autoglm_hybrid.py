@@ -422,7 +422,13 @@ class AutoGLMAgent:
             app_name = params.get('app', '')
             package = APP_PACKAGES.get(app_name, app_name)
             print(f"  启动应用: {app_name} ({package})")
-            return self.controller.launch_app(package)
+            success = self.controller.launch_app(package)
+            if not success:
+                print("  ⚠️ HTTP启动失败，尝试回主页后手动查找...")
+                # 回主页，让 AI 在下一步找到应用图标
+                self.controller.home()
+                time.sleep(1)
+            return success
         elif action == 'tap':
             x, y = int(params.get('x', 0)), int(params.get('y', 0))
             return self.controller.tap(x, y)
