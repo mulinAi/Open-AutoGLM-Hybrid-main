@@ -239,14 +239,26 @@ class DoubaoVisionModel:
                 lines = content.split("\n")
                 content = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
             
-            # 尝试提取 JSON
-            json_match = re.search(r'\{[^{}]*\}', content, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group())
+            # 尝试直接解析
+            try:
+                return json.loads(content)
+            except:
+                pass
             
-            return json.loads(content)
-        except json.JSONDecodeError:
-            print(f"  JSON 解析失败: {content[:100]}...")
+            # 尝试提取 JSON（支持嵌套）
+            start = content.find('{')
+            if start != -1:
+                depth = 0
+                for i, c in enumerate(content[start:], start):
+                    if c == '{': depth += 1
+                    elif c == '}': depth -= 1
+                    if depth == 0:
+                        json_str = content[start:i+1]
+                        return json.loads(json_str)
+            
+            return {"action": "wait", "params": {}, "thought": "无法提取JSON"}
+        except Exception as e:
+            print(f"  JSON 解析失败: {e}")
             return {"action": "wait", "params": {}, "thought": "响应解析失败"}
 
 # ============== 主程序 ==============
