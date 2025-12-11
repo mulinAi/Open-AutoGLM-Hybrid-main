@@ -300,6 +300,7 @@ class AutoGLMAgent:
             # 2. 分析
             print("  🤔 分析屏幕...")
             result = self.model.analyze_screen(screenshot, task, self.history)
+            print(f"  解析结果: {result}")
             
             action = result.get('action', 'wait')
             params = result.get('params', {})
