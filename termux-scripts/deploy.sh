@@ -280,6 +280,16 @@ EOF
 create_launcher() {
     print_info "创建启动脚本..."
     
+    # 创建目录
+    mkdir -p ~/bin
+    mkdir -p ~/.autoglm
+    
+    # 下载混合方案脚本
+    print_info "下载 autoglm_hybrid.py..."
+    wget -O ~/.autoglm/autoglm_hybrid.py https://raw.githubusercontent.com/mulinAi/Open-AutoGLM-Hybrid-main/main/termux-scripts/autoglm_hybrid.py || {
+        print_warning "下载失败，使用本地创建..."
+    }
+    
     # 创建 autoglm 命令
     cat > ~/bin/autoglm << 'LAUNCHER_EOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -287,9 +297,8 @@ create_launcher() {
 # 加载配置
 source ~/.autoglm/config.sh
 
-# 启动 AutoGLM
-cd ~/Open-AutoGLM
-python -m phone_agent.cli
+# 启动混合方案
+python ~/.autoglm/autoglm_hybrid.py
 LAUNCHER_EOF
     
     chmod +x ~/bin/autoglm
