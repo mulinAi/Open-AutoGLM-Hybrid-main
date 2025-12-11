@@ -166,46 +166,28 @@ class DoubaoVisionModel:
                 f"- {h['thought']}: {h['action']}" for h in recent
             ])
         
-        prompt = f"""你是一个专业的手机自动化助手，负责精确控制 Android 手机完成用户任务。
-
-【用户任务】{task}
-
-【屏幕尺寸】{width} x {height} 像素
+        prompt = f"""分析手机屏幕截图，完成任务：{task}
 {history_text}
 
-【坐标定位规则 - 非常重要】
-1. 屏幕左上角是 (0, 0)，右下角是 ({width}, {height})
-2. 屏幕分为9个区域便于定位：
-   - 左上: (0~{width//3}, 0~{height//3})
-   - 中上: ({width//3}~{width*2//3}, 0~{height//3})
-   - 右上: ({width*2//3}~{width}, 0~{height//3})
-   - 左中: (0~{width//3}, {height//3}~{height*2//3})
-   - 正中: ({width//3}~{width*2//3}, {height//3}~{height*2//3})
-   - 右中: ({width*2//3}~{width}, {height//3}~{height*2//3})
-   - 左下: (0~{width//3}, {height*2//3}~{height})
-   - 中下: ({width//3}~{width*2//3}, {height*2//3}~{height})
-   - 右下: ({width*2//3}~{width}, {height*2//3}~{height})
-3. 点击时坐标必须在目标元素的正中心
-4. 如果是桌面图标，通常排列整齐，每行4-5个图标
+屏幕尺寸：{width}x{height}像素，左上角坐标(0,0)，右下角({width},{height})
 
-【操作类型】
-- tap: 点击 {{"x": 数字, "y": 数字}}
-- swipe: 滑动 {{"x1": 起点x, "y1": 起点y, "x2": 终点x, "y2": 终点y}}
-- input: 输入文字 {{"text": "文字"}} (需要先点击输入框)
+可用操作：
+- tap: 点击某个位置 {{"x":数字,"y":数字}}
+- input: 输入文字 {{"text":"要输入的文字"}}
+- swipe: 滑动屏幕 {{"x1":起点x,"y1":起点y,"x2":终点x,"y2":终点y}}
 - back: 返回上一页 {{}}
 - home: 回到桌面 {{}}
-- done: 任务完成 {{}}
-- wait: 等待页面加载 {{}}
+- done: 任务已完成 {{}}
 
-【判断任务完成的标准】
-- 如果任务是"打开XX搜索YY"，当搜索结果页面显示时即为完成
-- 如果任务是"打开XX"，当XX应用主界面显示时即为完成
-- 不要重复执行已完成的操作
+返回格式（只返回JSON）：
+{{"action":"操作名","params":{{参数对象}},"thought":"简短说明"}}
 
-【返回格式】只返回一个JSON对象：
-{{"action": "操作类型", "params": {{参数}}, "thought": "简短说明当前屏幕状态和操作原因"}}
+示例：
+- 点击淘宝图标：{{"action":"tap","params":{{"x":270,"y":500}},"thought":"点击淘宝"}}
+- 输入搜索词：{{"action":"input","params":{{"text":"蓝牙耳机"}},"thought":"输入关键词"}}
+- 任务完成：{{"action":"done","params":{{}},"thought":"已打开淘宝"}}
 
-现在请仔细观察屏幕截图，返回下一步操作："""
+现在分析屏幕，返回下一步操作的JSON："""
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -238,10 +220,11 @@ class DoubaoVisionModel:
             if resp.status_code == 200:
                 result = resp.json()
                 content = result['choices'][0]['message']['content'].strip()
+                print(f"  AI原始响应: {content[:200]}...")
                 return self._parse_response(content)
             else:
-                print(f"  API 错误: {resp.status_code}")
-                return {"action": "wait", "params": {}, "thought": "API调用失败，等待重试"}
+                print(f"  API 错误: {resp.status_code} - {resp.text[:200]}")
+                return {"action": "wait", "params": {}, "thought": "API调用失败"}
                 
         except Exception as e:
             print(f"  模型调用失败: {e}")

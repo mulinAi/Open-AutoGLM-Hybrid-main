@@ -159,21 +159,23 @@ class AIModel:
         img.save(buf, format="PNG")
         img_b64 = base64.b64encode(buf.getvalue()).decode()
         
-        history_text = ""
-        if history:
-            recent = history[-5:]
-            history_text = "\n【已执行操作】" + ", ".join([h['action'] for h in recent])
-        
-        prompt = f"""你是手机自动化助手。任务：{task}
-屏幕：{width}x{height}像素{history_text}
+        prompt = f"""分析手机屏幕，完成任务：{task}
 
-【坐标规则】左上(0,0)，右下({width},{height})。点击要在目标中心。
+屏幕尺寸：{width}x{height}，左上角(0,0)
 
-【操作】tap/swipe/input/back/home/done/wait
+可用操作：
+- tap: 点击 {{"x":数字,"y":数字}}
+- input: 输入 {{"text":"文字"}}
+- swipe: 滑动 {{"x1":起点x,"y1":起点y,"x2":终点x,"y2":终点y}}
+- back: 返回
+- home: 主页
+- done: 完成
 
-【返回JSON】{{"action":"操作","params":{{}},"thought":"说明"}}
+返回JSON格式：{{"action":"操作名","params":{{参数}},"thought":"说明"}}
 
-分析屏幕，返回下一步："""
+例如点击屏幕中间：{{"action":"tap","params":{{"x":{width//2},"y":{height//2}}},"thought":"点击中间"}}
+
+只返回一个JSON："""
 
         try:
             r = requests.post(
