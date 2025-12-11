@@ -183,16 +183,33 @@ class AutoGLMAccessibilityService : AccessibilityService() {
      */
     fun launchApp(packageName: String): Boolean {
         return try {
-            val intent = packageManager.getLaunchIntentForPackage(packageName)
-            if (intent != null) {
-                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
-                Log.d(TAG, "Launch app: $packageName")
-                true
-            } else {
-                Log.w(TAG, "App not found: $packageName")
-                false
+            // 方法1: 使用 getLaunchIntentForPackage
+            var intent = packageManager.getLaunchIntentForPackage(packageName)
+            
+            // 方法2: 如果方法1失败，尝试直接构造 Intent
+            if (intent == null) {
+                Log.d(TAG, "getLaunchIntentForPackage failed, trying alternative method")
+                intent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    setPackage(packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                
+                // 查询是否有匹配的 Activity
+                val resolveInfo = packageManager.queryIntentActivities(intent, 0)
+                if (resolveInfo.isNotEmpty()) {
+                    val activityInfo = resolveInfo[0].activityInfo
+                    intent.setClassName(activityInfo.packageName, activityInfo.name)
+                } else {
+                    Log.w(TAG, "App not found: $packageName")
+                    return false
+                }
             }
+            
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+            Log.d(TAG, "Launch app success: $packageName")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch app: $packageName", e)
             false

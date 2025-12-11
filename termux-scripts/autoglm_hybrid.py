@@ -424,11 +424,16 @@ class AutoGLMAgent:
             print(f"  启动应用: {app_name} ({package})")
             success = self.controller.launch_app(package)
             if not success:
-                print("  ⚠️ HTTP启动失败，尝试回主页后手动查找...")
-                # 回主页，让 AI 在下一步找到应用图标
+                print("  ⚠️ 启动失败，回到主页让AI找应用图标...")
                 self.controller.home()
-                time.sleep(1)
-            return success
+                time.sleep(1.5)
+                # 添加提示到历史，让AI知道需要手动找图标
+                self.history.append({
+                    'step': len(self.history),
+                    'action': 'launch_failed',
+                    'thought': f'启动{app_name}失败，已回到主页，请在桌面找到{app_name}图标并点击'
+                })
+            return True  # 返回 True 继续执行，让 AI 在桌面找图标
         elif action == 'tap':
             x, y = int(params.get('x', 0)), int(params.get('y', 0))
             return self.controller.tap(x, y)
