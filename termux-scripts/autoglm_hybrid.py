@@ -138,38 +138,36 @@ class PhoneController:
     
     def launch_app(self, package_name: str) -> bool:
         """通过包名启动应用"""
-        # 方法1: 尝试通过 HTTP 接口（需要新版 APK）
+        print(f"  尝试启动: {package_name}")
+        
+        # 方法1: 尝试通过 HTTP 接口
         try:
             resp = requests.post(
                 f"{self.helper_url}/launch",
                 json={'package': package_name},
                 timeout=5
             )
+            print(f"  HTTP响应: {resp.status_code} - {resp.text[:100]}")
             if resp.status_code == 200 and resp.json().get('success', False):
+                print("  ✅ 通过HTTP启动成功")
                 return True
-        except:
-            pass
+            else:
+                print(f"  HTTP启动失败")
+        except Exception as e:
+            print(f"  HTTP接口错误: {e}")
         
-        # 方法2: 使用 Termux 的 am 命令（备用方案）
+        # 方法2: 使用 am 命令（Termux 中可能需要 root）
         try:
             import subprocess
-            result = subprocess.run(
-                ['am', 'start', '-n', f'{package_name}/.MainActivity'],
-                capture_output=True,
-                timeout=5
-            )
-            if result.returncode == 0:
+            # 使用 am start 启动
+            cmd = f'am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n {package_name}'
+            result = subprocess.run(['sh', '-c', cmd], capture_output=True, text=True, timeout=5)
+            print(f"  am命令结果: {result.returncode} - {result.stdout} {result.stderr}")
+            if 'Starting' in result.stdout or result.returncode == 0:
                 return True
-            
-            # 尝试使用 monkey 命令
-            result = subprocess.run(
-                ['monkey', '-p', package_name, '-c', 'android.intent.category.LAUNCHER', '1'],
-                capture_output=True,
-                timeout=5
-            )
-            return result.returncode == 0
         except Exception as e:
-            print(f"  启动应用失败: {e}")
+            print(f"  am命令失败: {e}")
+        
         return False
 
 # 常用应用包名
