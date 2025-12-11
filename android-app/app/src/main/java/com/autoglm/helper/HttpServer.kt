@@ -26,6 +26,7 @@ class HttpServer(private val service: AutoGLMAccessibilityService, port: Int = 8
                 uri == "/input" && method == Method.POST -> handleInput(session)
                 uri == "/back" && method == Method.POST -> handleBack()
                 uri == "/home" && method == Method.POST -> handleHome()
+                uri == "/launch" && method == Method.POST -> handleLaunch(session)
                 else -> newFixedLengthResponse(
                     Response.Status.NOT_FOUND,
                     "application/json",
@@ -157,6 +158,24 @@ class HttpServer(private val service: AutoGLMAccessibilityService, port: Int = 8
 
     private fun handleHome(): Response {
         val success = service.performHome()
+        
+        val response = JSONObject()
+        response.put("success", success)
+        
+        return newFixedLengthResponse(
+            Response.Status.OK,
+            "application/json",
+            response.toString()
+        )
+    }
+
+    private fun handleLaunch(session: IHTTPSession): Response {
+        val body = getRequestBody(session)
+        val json = JSONObject(body)
+        
+        val packageName = json.getString("package")
+        
+        val success = service.launchApp(packageName)
         
         val response = JSONObject()
         response.put("success", success)

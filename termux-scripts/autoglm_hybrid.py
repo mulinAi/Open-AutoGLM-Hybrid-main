@@ -135,6 +135,51 @@ class PhoneController:
             return resp.status_code == 200 and resp.json().get('success', False)
         except:
             return False
+    
+    def launch_app(self, package_name: str) -> bool:
+        """通过包名启动应用"""
+        try:
+            resp = requests.post(
+                f"{self.helper_url}/launch",
+                json={'package': package_name},
+                timeout=5
+            )
+            return resp.status_code == 200 and resp.json().get('success', False)
+        except Exception as e:
+            print(f"  启动应用失败: {e}")
+        return False
+
+# 常用应用包名
+APP_PACKAGES = {
+    "淘宝": "com.taobao.taobao",
+    "taobao": "com.taobao.taobao",
+    "京东": "com.jingdong.app.mall",
+    "jd": "com.jingdong.app.mall",
+    "微信": "com.tencent.mm",
+    "wechat": "com.tencent.mm",
+    "支付宝": "com.eg.android.AlipayGphone",
+    "alipay": "com.eg.android.AlipayGphone",
+    "抖音": "com.ss.android.ugc.aweme",
+    "douyin": "com.ss.android.ugc.aweme",
+    "拼多多": "com.xunmeng.pinduoduo",
+    "pinduoduo": "com.xunmeng.pinduoduo",
+    "美团": "com.sankuai.meituan",
+    "meituan": "com.sankuai.meituan",
+    "高德地图": "com.autonavi.minimap",
+    "amap": "com.autonavi.minimap",
+    "百度地图": "com.baidu.BaiduMap",
+    "微博": "com.sina.weibo",
+    "weibo": "com.sina.weibo",
+    "qq": "com.tencent.mobileqq",
+    "QQ": "com.tencent.mobileqq",
+    "bilibili": "tv.danmaku.bili",
+    "b站": "tv.danmaku.bili",
+    "小红书": "com.xingin.xhs",
+    "设置": "com.android.settings",
+    "settings": "com.android.settings",
+    "相机": "com.android.camera",
+    "camera": "com.android.camera",
+}
 
 # ============== 视觉模型 ==============
 class DoubaoVisionModel:
@@ -169,25 +214,30 @@ class DoubaoVisionModel:
         prompt = f"""分析手机屏幕截图，完成任务：{task}
 {history_text}
 
-屏幕尺寸：{width}x{height}像素，左上角坐标(0,0)，右下角({width},{height})
+屏幕尺寸：{width}x{height}像素
 
 可用操作：
-- tap: 点击某个位置 {{"x":数字,"y":数字}}
-- input: 输入文字 {{"text":"要输入的文字"}}
-- swipe: 滑动屏幕 {{"x1":起点x,"y1":起点y,"x2":终点x,"y2":终点y}}
-- back: 返回上一页 {{}}
-- home: 回到桌面 {{}}
-- done: 任务已完成 {{}}
+- launch: 直接启动应用（推荐）{{"app":"应用名"}} 支持：淘宝/京东/微信/支付宝/抖音/拼多多/美团/高德地图/微博/QQ/bilibili/小红书
+- tap: 点击屏幕位置 {{"x":数字,"y":数字}}
+- input: 输入文字 {{"text":"文字"}}
+- swipe: 滑动 {{"x1":起点x,"y1":起点y,"x2":终点x,"y2":终点y}}
+- back: 返回 {{}}
+- done: 任务完成 {{}}
 
-返回格式（只返回JSON）：
-{{"action":"操作名","params":{{参数对象}},"thought":"简短说明"}}
+重要规则：
+1. 如果任务是"打开XX应用"，优先使用 launch 操作直接启动
+2. 如果需要搜索，先用 launch 打开应用，再 tap 点击搜索框，再 input 输入
+3. 坐标(0,0)在左上角，({width},{height})在右下角
+
+返回JSON格式：{{"action":"操作名","params":{{}},"thought":"说明"}}
 
 示例：
-- 点击淘宝图标：{{"action":"tap","params":{{"x":270,"y":500}},"thought":"点击淘宝"}}
-- 输入搜索词：{{"action":"input","params":{{"text":"蓝牙耳机"}},"thought":"输入关键词"}}
-- 任务完成：{{"action":"done","params":{{}},"thought":"已打开淘宝"}}
+- 打开淘宝：{{"action":"launch","params":{{"app":"淘宝"}},"thought":"启动淘宝应用"}}
+- 点击搜索框：{{"action":"tap","params":{{"x":540,"y":150}},"thought":"点击顶部搜索框"}}
+- 输入关键词：{{"action":"input","params":{{"text":"蓝牙耳机"}},"thought":"输入搜索词"}}
+- 完成：{{"action":"done","params":{{}},"thought":"搜索结果已显示"}}
 
-现在分析屏幕，返回下一步操作的JSON："""
+现在返回下一步操作："""
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -347,6 +397,11 @@ class AutoGLMAgent:
         elif action == 'wait':
             time.sleep(1)
             return True
+        elif action == 'launch':
+            app_name = params.get('app', '')
+            package = APP_PACKAGES.get(app_name, app_name)
+            print(f"  启动应用: {app_name} ({package})")
+            return self.controller.launch_app(package)
         elif action == 'tap':
             x, y = int(params.get('x', 0)), int(params.get('y', 0))
             return self.controller.tap(x, y)

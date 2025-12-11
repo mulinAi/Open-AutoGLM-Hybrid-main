@@ -179,6 +179,27 @@ class AutoGLMAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 通过包名启动应用
+     */
+    fun launchApp(packageName: String): Boolean {
+        return try {
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            if (intent != null) {
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                Log.d(TAG, "Launch app: $packageName")
+                true
+            } else {
+                Log.w(TAG, "App not found: $packageName")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch app: $packageName", e)
+            false
+        }
+    }
+
+    /**
      * 执行输入操作
      */
     fun performInput(text: String): Boolean {
