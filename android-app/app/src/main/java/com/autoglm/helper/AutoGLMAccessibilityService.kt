@@ -151,6 +151,34 @@ class AutoGLMAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 执行返回操作
+     */
+    fun performBack(): Boolean {
+        return try {
+            val success = performGlobalAction(GLOBAL_ACTION_BACK)
+            Log.d(TAG, "Back: $success")
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to perform back", e)
+            false
+        }
+    }
+
+    /**
+     * 执行主页操作
+     */
+    fun performHome(): Boolean {
+        return try {
+            val success = performGlobalAction(GLOBAL_ACTION_HOME)
+            Log.d(TAG, "Home: $success")
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to perform home", e)
+            false
+        }
+    }
+
+    /**
      * 执行输入操作
      */
     fun performInput(text: String): Boolean {
